@@ -1,0 +1,42 @@
+<!--
+TabJuggler: Chrome/Chromium Extension. Manage your Tabs!
+Copyright (C) 2010  Luca Belluccini
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+-->
+<!DOCTYPE html>
+<html>
+	<head>
+	<link href="assets/styles/popup.css" rel="stylesheet" type="text/css">
+	<script type="text/javascript" src="assets/js/jquery.min.js"></script>
+	<script type="text/javascript" src="assets/js/popup.js"></script>
+	</head>
+	<body>		
+		<div onclick="allTabsToOneWindow()" class="toolstrip-button">All Tabs in one Window</div>
+		<div onclick="oneWindowForEachTab()" class="toolstrip-button">One Window for each Tab</div>
+		<div onclick="oneWindowForEachHostName()" class="toolstrip-button">One Window for each Hostname</div>
+		<div onclick="sortAllTabsInWindowBy('title')" class="toolstrip-button">Sort all Tabs in Window by Title</div>
+		<div onclick="sortAllTabsInWindowBy('hostname')" class="toolstrip-button">Sort all Tabs in Window by Hostname</div>
+		<div onclick="sortAllTabsInWindowBy('url')" class="toolstrip-button">Sort all Tabs in Window by Url</div>
+		<!--<div onclick="removeDuplicateTabs()" class="toolstrip-button">Remove Duplicate Tabs</div>-->
+		<div class="separator"></div>
+		<div id="tabFilterInput" class="toolstrip-button">
+			<input type="search" id="tabSearch" name="tabSearch" onsearch="refreshTabFilterResult()" oninput="refreshTabFilterResult()" results="5" autofocus placeholder="Search..." autosave="unique">
+			<input type="checkbox" onclick="refreshTabFilterResult()" id="caseSensitive" name="caseSensitive"/><label for="useRegExp">Case Sensitive</label>
+			<input type="checkbox" onclick="refreshTabFilterResult()" id="inThisWindowOnly" name="inThisWindowOnly"/><label for="useRegExp">In This Window Only</label>
+			<div class="separator-empty"></div>
+		</div>
+	</body>
+</html>
