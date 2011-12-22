@@ -24,12 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	<script type="text/javascript" src="assets/js/popup.js"></script>
 	</head>
 	<body>		
-		<div onclick="allTabsToOneWindow()" class="toolstrip-button">All Tabs in one Window</div>
-		<div onclick="oneWindowForEachTab()" class="toolstrip-button">One Window for each Tab</div>
-		<div onclick="oneWindowForEachHostName()" class="toolstrip-button">One Window for each Hostname</div>
-		<div onclick="sortAllTabsInWindowBy('title')" class="toolstrip-button">Sort all Tabs in Window by Title</div>
-		<div onclick="sortAllTabsInWindowBy('hostname')" class="toolstrip-button">Sort all Tabs in Window by Hostname</div>
-		<div onclick="sortAllTabsInWindowBy('url')" class="toolstrip-button">Sort all Tabs in Window by Url</div>
+		<div onclick="backgroundPage.allTabsToOneWindow()" class="toolstrip-button">All Tabs in one Window</div>
+		<div onclick="backgroundPage.oneWindowForEachTab()" class="toolstrip-button">One Window for each Tab</div>
+		<div onclick="backgroundPage.oneWindowForEachHostName()" class="toolstrip-button">One Window for each Hostname</div>
+		<div onclick="backgroundPage.sortAllTabsInWindowBy('title')" class="toolstrip-button">Sort all Tabs in Window by Title</div>
+		<div onclick="backgroundPage.sortAllTabsInWindowBy('hostname')" class="toolstrip-button">Sort all Tabs in Window by Hostname</div>
+		<div onclick="backgroundPage.sortAllTabsInWindowBy('url')" class="toolstrip-button">Sort all Tabs in Window by Url</div>
 		<!--<div onclick="removeDuplicateTabs()" class="toolstrip-button">Remove Duplicate Tabs</div>-->
 		<div class="separator"></div>
 		<div id="tabFilterInput" class="toolstrip-button">

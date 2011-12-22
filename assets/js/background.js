@@ -17,78 +17,226 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-// Sets the internal status of TabJuggler Extension
-	// TODO: To be turned in TabJuggler.status
-	var status = "idle";
-	// TODO: To be turned in TabJuggler.currentTabs
-	var currentTabs = new Array();
-	// TODO: To be turned in TabJuggler.classifiedTabs
-	var classifiedTabs = new Object();
-	/* DEPRECATED ?
-	chrome.extension.onRequest.addListener(
-		function(request, sender, sendResponse) {
-			if(request.msg == "currentTabs") {
-				status = request.msg;
-				currentTabs = request.data;
-			}
-			if(request.msg == "classifiedTabs") {
-				status = request.msg;
-				classifiedTabs = request.data;
-			}
-			sendResponse();
-		}
-	);
-	*/
+	// Vertical Offset between windows
+	var TOPOFFSETPX = 48;
+
+	// Extracts the Hostname from a String
+	// TODO: Support chrome:// and chrome-extension:// URI Schemas
+	// TODO: Try to obtain 2nd level domain instead of Hostname
+	String.prototype.getHostname = function() {
+		// ^(((?:f|ht)tp)(?:s)?|(chrome))\://([^/]+)
+		var re = new RegExp('^(?:f|ht)tp(?:s)?\://([^/]+)', 'im');
+		if(this.match(re) != null)
+			return this.match(re)[1].toString();
+		else
+			return "";
+	}
 	
-	// New call
-	function message(msg, data) {
-		if(msg == "currentTabs") {
-			status = msg;
-			currentTabs = data;
-		}
-		if(msg == "classifiedTabs") {
-			status = msg;
-			classifiedTabs = data;
+	// It collects all Tabs and it moves them into a single Window
+	function allTabsToOneWindow() {
+		// Destination Window is the current one
+		chrome.windows.getCurrent(getAllWindows);
+		function getAllWindows(currentWindow) {
+			currentWindowId = currentWindow.id;
+			// Get all open Windows (it's cold here!)
+			chrome.windows.getAll({populate:true}, iterateThroughWindows);
+			function iterateThroughWindows(openWindows) {
+				// For each open Window
+				for(idx in openWindows) {
+					// If it is not the Destination Window
+					if(openWindows[idx].id == currentWindowId)
+						continue;
+					// Move to the current window
+					var idList = [];
+					for(ididx in openWindows[idx].tabs) {
+						idList.push(openWindows[idx].tabs[ididx].id);
+					}
+					// Move the list of tabs to the current window
+					chrome.tabs.move(idList, {windowId:currentWindowId,index:0}, function(tabs) {
+						delete idList;
+					});
+				}
+			}
 		}
 	}
 	
-	chrome.windows.onCreated.addListener(
-		function(wnd) {
-			if(status == "idle")
-				return;
-			if(status == "currentTabs") {
-				var empty = true;
-				var movedTabId;
-				for(tidx in currentTabs) {
-					empty = false;
-					movedTabId = currentTabs.pop().id;
-					// Move that tab to the newest Window
-					chrome.tabs.move(movedTabId,{windowId:wnd.id, index:0});
-					break;
-				}
-				if(empty) {
-					status = "idle";
-					currentTabs = null;
+	// It opens a Window for each group of Tabs having the same Hostname
+	function oneWindowForEachHostName() {
+		chrome.windows.getAll({populate:true}, iterateThroughWindows);
+		function iterateThroughWindows(openWindows) {
+			var tabGroups = new Object();
+			// For each open Window
+			for(idx in openWindows) {
+				// For each tab in this Window
+				for(tidx in openWindows[idx].tabs) {
+					tab = openWindows[idx].tabs[tidx];
+					hostname = tab.url.getHostname();
+					if(hostname == null)
+						continue;
+					if(hostname == "")
+						hostname = "others";
+					// Collect tab groups in an associative array of tab arrays
+					if(tabGroups[hostname] == undefined)
+						tabGroups[hostname] = [];
+					tabGroups[hostname].push(tab.id);
 				}
 			}
-			if(status == "classifiedTabs") {
-				// Extract a group of Tabs
-				var empty = true;
-				for(gidx in classifiedTabs) {
-					empty = false;
-					var tabGroup = classifiedTabs[gidx];
-					// For each tab in the group
-					for(tidx in tabGroup) {
-						// Move Tab of this group into the new Window
-						chrome.tabs.move(tabGroup[tidx],{windowId:wnd.id,index:0});
+			var topOffsetPx = 0;
+			// For each group of tabs
+			for(hnidx in tabGroups) {
+				// Create a window using the first tab in the tab groups
+				chrome.windows.create({top:topOffsetPx, tabId:tabGroups[hnidx][0]}, moveTabsToNewWindow);
+				function moveTabsToNewWindow(newWindow) {
+					// Move the remaining ones to new window
+					for(aidx in tabGroups) {
+						// Lookup the tab groups to find the missing tabs of the group
+						if(tabGroups[aidx][0] == newWindow.tabs[0].id) {
+							chrome.tabs.move(tabGroups[aidx], {windowId:newWindow.id, index:0}, function(tabs) {
+								delete tabGroups[aidx];
+							});
+							break;
+						}
 					}
-					delete classifiedTabs[gidx];
-					break;
 				}
-				if(empty) {
-					status = "idle";
-					classifiedTabs = null;
+				topOffsetPx += TOPOFFSETPX;
+			}
+		}
+	}
+	
+	// It opens a Window for each Tab
+	function oneWindowForEachTab() {
+		// Get current Window
+		chrome.windows.getCurrent(getAllTabs);
+		function getAllTabs(currentWindow) {
+			chrome.tabs.getAllInWindow(currentWindow.id, iterateThroughTabs);
+			function iterateThroughTabs(tabs) {
+				var topOffsetPx = 0;
+				for(idxt in tabs) {
+					// Create a new Window for each tab and assign directly to it
+					chrome.windows.create({top:topOffsetPx, tabId:tabs[idxt].id}, function(newWindow) {
+						delete tabs[idxt];
+					});
+					topOffsetPx += TOPOFFSETPX;
 				}
 			}
 		}
-	);
+	}
+
+	// Comparators for sorting
+	function strcmp(str1, str2) {
+		return ( ( str1 == str2 ) ? 0 : ( ( str1 > str2 ) ? 1 : -1 ) );
+	}
+	function byTitle(a, b) {
+		return strcmp(a.title.toLowerCase(), b.title.toLowerCase());
+	}
+	function byHostname(a, b) {
+		return strcmp(a.url.getHostname().toLowerCase(), b.url.getHostname().toLowerCase());
+	}
+	function byUrl(a, b) {
+		return strcmp(a.url.toLowerCase(), b.url.toLowerCase());
+	}
+	
+	// It sorts tabs using parameter as key
+	function sortAllTabsInWindowBy(key) {
+		// Get current Window
+		chrome.windows.getCurrent(function (currentWindow) {
+			tabs = currentWindow.tabs;
+			if (key == 'hostname')
+				tabs = tabs.sort(byHostname);
+			if (key == 'title')
+				tabs = tabs.sort(byTitle);
+			if (key == 'url')
+				tabs = tabs.sort(byUrl);
+			var i = 0;
+			for(idxt in tabs) {
+				chrome.tabs.move(tabs[idxt].id, {index:i++});
+			}
+			delete tabs;
+		});
+	}
+	
+	// TODO: Sort tabs in all windows
+	
+	// Detaches matched tabs
+	function detachMatchedTabs(tabIds) {
+		chrome.windows.create({tabId:tabIds[0]}, function(newWindow) {
+			chrome.tabs.move(tabIds, {windowId:newWindow.id, index:0});
+		});
+	}
+	
+	// Detaches matched tabs
+	function detachUnmatchedTabs(tabIds, thisWindowOnly) {
+		if(thisWindowOnly) {
+			chrome.windows.getCurrent(function(currWindow) {
+				iterateThroughTabsDetach(currWindow.tabs);
+			});
+		} else {
+			chrome.windows.getAll({populate:true}, function(openWindows) {
+				for(idx in openWindows) {
+					iterateThroughTabsDetach(openWindows[idx].tabs);
+				}
+			});
+		}
+
+		function iterateThroughTabsDetach(tabsInWindow) {
+			// Check this tab id againts result tab ids
+			for(idxt in tabsInWindow){
+				for(var idxr = 0; idxr < tabIds.length; ){
+					if(tabIds[idxr] == tabsInWindow[idxt].id){
+						tabIds.splice(idxr,1);
+						tabsInWindow.splice(idxt,1);
+						continue;
+					}
+					++idxr;
+				}
+			}
+			// For each tab in Window (result tabs excluded)
+			var tabsToDetach = [];
+			for(idxt in tabsInWindow) {
+				tabsToDetach.push(tabsInWindow[idxt].id);
+			}
+			chrome.windows.create(tabsToDetach[0], function(newWindow) {
+				chrome.tabs.move(tabsToDetach, {windowId:newWindow.id, index:0});
+				delete tabsToDetach;
+			});
+		}
+	}
+	
+	function closeMatchedTabs(tabIds) {
+		chrome.tabs.remove(tabIds);
+	}
+	
+	function closeUnmatchedTabs(tabIds, thisWindowOnly) {
+		if(thisWindowOnly) {
+			chrome.windows.getCurrent( function(currWindow) {
+				iterateThroughTabsClose(currWindow.tabs);
+			});
+		} else {
+			chrome.windows.getAll({populate:true}, function(openWindows) {
+				// For each open Window
+				for(idx in openWindows) {
+					iterateThroughTabsClose(openWindows[idx].tabs);
+				}
+			});
+		}
+		function iterateThroughTabsClose(tabsInWindow) {
+			// Check this tab id againts result tab ids
+			for(idxt in tabsInWindow){
+				for(var idxr = 0; idxr < tabIds.length; ){
+					if(tabIds[idxr] == tabsInWindow[idxt].id){
+						tabIds.splice(idxr,1);
+						tabsInWindow.splice(idxt,1);
+						continue;
+					}
+					++idxr;
+				}
+			}
+			// For each tab in Window (result tabs excluded)
+			var tabsToClose = [];
+			for(idxt in tabsInWindow) {
+				tabsToClose.push(tabsInWindow[idxt].id);
+			}
+			chrome.tabs.remove(tabsToClose);
+			delete tabsToClose;
+		}
+	}
