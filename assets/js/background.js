@@ -140,18 +140,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 	function sortAllTabsInWindowBy(key) {
 		// Get current Window
 		chrome.windows.getCurrent(function (currentWindow) {
-			tabs = currentWindow.tabs;
-			if (key == 'hostname')
-				tabs = tabs.sort(byHostname);
-			if (key == 'title')
-				tabs = tabs.sort(byTitle);
-			if (key == 'url')
-				tabs = tabs.sort(byUrl);
-			var i = 0;
-			for(idxt in tabs) {
-				chrome.tabs.move(tabs[idxt].id, {index:i++});
-			}
-			delete tabs;
+			chrome.tabs.getAllInWindow(currentWindow.id, function(tabs) {
+				if (key == 'hostname')
+					tabs = tabs.sort(byHostname);
+				if (key == 'title')
+					tabs = tabs.sort(byTitle);
+				if (key == 'url')
+					tabs = tabs.sort(byUrl);
+				var i = 0;
+				for(idxt in tabs) {
+					chrome.tabs.move(tabs[idxt].id, {index:i++});
+				}
+			});
 		});
 	}
 	

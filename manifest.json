@@ -1,6 +1,6 @@
 {
   "name": "TabJuggler",
-  "version": "1.9.9",
+  "version": "1.9.10",
   "description": "Juggle with your Tabs!",
   "icons": {	"16": "assets/icons/icon16.png",
 				"32": "assets/icons/icon32.png",
