@@ -1,7 +1,7 @@
 # tabjuggler
 Automatically exported from code.google.com/p/tabjuggler
 
-= Manage your Tabs in the easiest way! =
+Manage your Tabs in the easiest way!
 
 This extension allows the user to:
 
